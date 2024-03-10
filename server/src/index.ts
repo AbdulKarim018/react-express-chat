@@ -12,21 +12,34 @@ app.get("/health", (req, res) => {
   res.json({ message: "Hello, World!" });
 });
 const io = new Server(httpServer, {
-  /* options */
+  cors: {
+    origin: "*",
+  },
+  allowUpgrades: true,
 });
 
+setInterval(() => {
+  console.log("Connected Clients: ", connectedClients);
+}, 5000);
+
 io.on("connection", (socket) => {
-  console.log(`user<${socket.id}> connected`);
-  io.emit("chat:message", `user<${socket.id}> connected`);
+  console.log(`user <${socket.id}> connected`);
+  io.emit("chat:message", {
+    message: `user <${socket.id}> connected`,
+    sender: "Server",
+  });
   connectedClients++;
 
   socket.on("chat:message", (msg) => {
     console.log("Message Received: ", msg);
-    io.emit("chat:message", msg);
+    io.emit("chat:message", { message: msg, sender: socket.id });
   });
   socket.on("disconnect", () => {
-    console.log(`user<${socket.id}> disconnected`);
-    io.emit("chat:message", `user<${socket.id}> disconnected`);
+    console.log(`user <${socket.id}> disconnected`);
+    io.emit("chat:message", {
+      message: `user <${socket.id}> disconnected`,
+      sender: "Server",
+    });
     connectedClients--;
   });
 });
