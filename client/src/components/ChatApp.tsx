@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
-import UserList from "./UserList";
+import StatusBar from "./StatusBar";
 import { useSocket } from "@/contexts/socket";
 
 interface Message {
@@ -11,7 +11,7 @@ interface Message {
 
 const ChatApp: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [users, setUsers] = useState<string[]>(["User 1", "User 2", "User 3"]);
+  const [users, setUsers] = useState<string[]>([]);
   const chatAreaRef = useRef<HTMLDivElement | null>(null);
   const socket = useSocket();
 
@@ -25,8 +25,18 @@ const ChatApp: React.FC = () => {
       sendMessage(msg.message, msg.sender);
     });
 
+    socket?.on("chat:new-connection", (msg: string[]) => {
+      setUsers(msg);
+    });
+
+    socket?.on("chat:new-disconnection", (msg) => {
+      setUsers(msg);
+    });
+
     return () => {
       socket?.off("chat:message");
+      socket?.off("chat:new-connection");
+      socket?.off("chat:new-disconnection");
     };
   }, [socket]);
 
@@ -38,16 +48,19 @@ const ChatApp: React.FC = () => {
   }, [messages]);
 
   return (
-    <div className="flex h-dvh">
-      {/* <div className="w-1/4 bg-gray-200 p-4">
-        <UserList users={users} />
-      </div> */}
-      {/* <div className="w-3/4 bg-gray-100 flex flex-col"> */}
-      <div className="w-full bg-gray-100 flex flex-col">
-        <div className="flex-1 p-4 overflow-y-auto" ref={chatAreaRef}>
+    <div className="flex flex-col h-screen">
+      <div className="bg-gray-300 sticky top-0">
+        <StatusBar users={users} />
+      </div>
+      <div
+        className="w-full h-dvh flex flex-col overflow-y-auto"
+        ref={chatAreaRef}
+      >
+        <div className="flex-1 p-4 bg-gray-200">
           {messages.map((msg, index) => (
-            <ChatMessage key={index} message={msg} />
+            <ChatMessage key={index} socketId={socket?.id} msg={msg} />
           ))}
+          <div className="h-[13vh]"></div>
         </div>
         <ChatInput />
       </div>
